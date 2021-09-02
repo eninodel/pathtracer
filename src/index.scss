@@ -1,0 +1,51 @@
+$square-height-and-width: 5rem;
+
+*,
+html {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.square {
+  height: $square-height-and-width;
+  width: $square-height-and-width;
+  border-style: solid;
+  border-width: 1px;
+  border-color: black;
+  -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+  -moz-box-sizing: border-box; /* Firefox, other Gecko */
+  box-sizing: border-box; /* Opera/IE 8+ */
+}
+
+.square.active {
+  background-color: blue;
+}
+
+.square.empty {
+  background-color: white;
+}
+
+.square.wall {
+  background-color: grey;
+}
+
+.square.start {
+  background-color: green;
+}
+
+.square.finish {
+  background-color: red;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(10, $square-height-and-width);
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
