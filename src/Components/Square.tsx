@@ -56,9 +56,7 @@ function Square({ squareType, ith, jth, board }: SquareProps) {
       onClick={() => {
         handleClick();
       }}
-    >
-      {typeOfSquare}
-    </div>
+    ></div>
   );
 }
 
