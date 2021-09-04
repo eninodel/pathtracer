@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import SquareReducer from "./SquareReducer";
+import StatusReducer from "./StatusReducer";
 
 const store = configureStore({
   reducer: {
     getSquares: SquareReducer,
+    getStatus: StatusReducer,
   },
 });
 export default store;

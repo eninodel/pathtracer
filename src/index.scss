@@ -1,4 +1,4 @@
-$square-height-and-width: 5rem;
+$square-height-and-width: 8vw;
 
 *,
 html {
@@ -8,27 +8,99 @@ html {
     Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
+.status {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.searching {
+  h1 {
+    margin-right: 20px;
+  }
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  width: 30%;
+}
+
+.dot-flashing {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  background-color: black;
+  color: black;
+  animation: dotFlashing 1s infinite linear alternate;
+  animation-delay: 0.5s;
+}
+
+.dot-flashing::before,
+.dot-flashing::after {
+  content: "";
+  display: inline-block;
+  position: absolute;
+  top: 0;
+}
+
+.dot-flashing::before {
+  left: -15px;
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  background-color: black;
+  color: black;
+  animation: dotFlashing 1s infinite alternate;
+  animation-delay: 0s;
+}
+
+.dot-flashing::after {
+  left: 15px;
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  background-color: black;
+  color: black;
+  animation: dotFlashing 1s infinite alternate;
+  animation-delay: 1s;
+}
+
+@keyframes dotFlashing {
+  0% {
+    background-color: black;
+  }
+  50%,
+  100% {
+    background-color: white;
+  }
+}
+.grid {
+  div {
+    border-top: 1px solid black;
+    border-right: 1px solid black;
+  }
+}
+
+.grid {
+  border-bottom: 1px solid black;
+  border-left: 1px solid black;
+}
+
 .square {
-  height: $square-height-and-width;
-  width: $square-height-and-width;
-  border-style: solid;
-  border-width: 1px;
-  border-color: black;
+  height: clamp(0.5rem, $square-height-and-width, 4rem);
+  width: clamp(0.5rem, $square-height-and-width, 4rem);
   -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
   -moz-box-sizing: border-box; /* Firefox, other Gecko */
   box-sizing: border-box; /* Opera/IE 8+ */
 }
 
 .square.active {
-  background-color: blue;
-}
-
-.square.visited {
-  background-color: purple;
+  background-color: #f38ba0;
 }
 
 .square.searched {
-  background-color: orange;
+  background-color: #f6ae99;
 }
 
 .square.empty {
@@ -36,35 +108,50 @@ html {
 }
 
 .square.wall {
-  background-color: grey;
+  background-color: #716f81;
 }
 
 .square.start {
-  background-color: green;
+  background-color: #b5eaea;
 }
 
 .square.finish {
-  background-color: red;
+  background-color: #ffbcbc;
+}
+
+.grid-and-buttons {
+  width: min-content;
+  margin-top: 10px;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(10, $square-height-and-width);
+  grid-template-columns: repeat(
+    10,
+    clamp(0.5rem, $square-height-and-width, 4rem)
+  );
 }
-.buttton-container {
+.button-container {
   margin-top: 10px;
-  display: flex;
-  justify-content: space-between;
-  width: $square-height-and-width * 10;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+}
+
+.button-groups {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
 }
 
 button {
+  margin-bottom: 2px;
+  font-size: clamp(0.6rem, 1.8vw, 0.8rem);
   border: solid;
   border-color: black;
   border-width: 1px;
   background-color: white;
   color: black;
-  height: 2rem;
+  height: 2.5rem;
   border-radius: 50px;
   padding: 0 10px 0 10px;
 }
@@ -78,4 +165,10 @@ button:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+@media only screen and (max-width: 750px) {
+  .button-groups {
+    grid-template-columns: 1fr;
+  }
 }

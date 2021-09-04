@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useAppSelector, useAppDispatch } from "../hooks";
+import { useAppSelector, useAppDispatch } from "../ReduxHooks";
 import { addSquares } from "../SquareReducer";
 
 type SquareProps = {
@@ -12,6 +12,9 @@ type SquareProps = {
 function Square({ squareType, ith, jth, board }: SquareProps) {
   const squares: { [key: string]: string } = useAppSelector(
     (state) => state.getSquares.squares
+  );
+  const clickable: boolean = useAppSelector(
+    (state) => state.getSquares.clickable
   );
   const dispatch = useAppDispatch();
   const squareKey: string = ith + "" + jth;
@@ -54,6 +57,7 @@ function Square({ squareType, ith, jth, board }: SquareProps) {
     <div
       className={"square " + typeOfSquare}
       onClick={() => {
+        if (!clickable) return;
         handleClick();
       }}
     ></div>

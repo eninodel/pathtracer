@@ -1,20 +1,27 @@
-import React, { ReactElement, useState, useRef } from "react";
-import Square from "./Components/Square";
-import { useAppDispatch } from "./hooks";
-import { addSquares } from "./SquareReducer";
+import React, { useRef } from "react";
+import Grid from "./Components/Grid";
+import Status from "./Components/Status";
+import { useAppDispatch } from "./ReduxHooks";
+import { addSquares, updateSquareClick } from "./SquareReducer";
+import { updateStatus, updateSquaresSearched } from "./StatusReducer";
 import "./index.scss";
 
 const initArr = ["", "", "", "", "", "", "", "", "", ""];
+export type squareTypes =
+  | "wall"
+  | "empty"
+  | "start"
+  | "finish"
+  | "active"
+  | "visited";
 const wallThreshold: number = 0.7;
 
 function App() {
-  const board: React.MutableRefObject<
-    ("wall" | "empty" | "start" | "finish" | "active")[][]
-  > = useRef(
+  const board: React.MutableRefObject<squareTypes[][]> = useRef(
     Array(10)
       .fill([])
       .map((_) => {
-        return initArr.map((item: string) => {
+        return initArr.map((_) => {
           if (Math.random() > wallThreshold) {
             return "wall";
           } else {
@@ -25,52 +32,83 @@ function App() {
   );
   const dispatch = useAppDispatch();
   const isRunning = useRef(false);
+  const isFirstTime = useRef(false);
 
-  const renderBoard = () => {
-    let renderedBoard: Array<ReactElement> = [];
-    board.current.map((row: string[], i: number) => {
-      return row.map((individualSquare: string, j: number) => {
-        const newSquare = (
-          <Square
-            squareType={individualSquare}
-            ith={i}
-            jth={j}
-            key={Math.random()}
-            board={board}
-          ></Square>
-        );
-        return renderedBoard.push(newSquare);
+  interface CopyBoardParameters {
+    matrix: Array<Array<squareTypes>>;
+    operation: "copy" | "reset" | "clearboard" | "random";
+  }
+
+  const copyBoard = ({ matrix, operation }: CopyBoardParameters) => {
+    return matrix.map((row: squareTypes[], i: number) => {
+      return row.map((square: squareTypes, j: number) => {
+        const squareKey: string = i + "" + j;
+        if (operation !== "copy") {
+          if (squareKey === "00") {
+            dispatch(addSquares({ [squareKey]: "start" }));
+            return "start";
+          } else if (squareKey === "99") {
+            dispatch(addSquares({ [squareKey]: "finish" }));
+            return "finish";
+          }
+          if (operation === "clearboard") {
+            dispatch(addSquares({ [squareKey]: "empty" }));
+            return "empty";
+          } else if (operation === "reset") {
+            //reset board
+            if (String(square) === "searched") {
+              dispatch(addSquares({ [squareKey]: "empty" }));
+              return "empty";
+            } else {
+              dispatch(addSquares({ [squareKey]: square }));
+              return square;
+            }
+          } else {
+            // random
+            if (Math.random() > wallThreshold) {
+              dispatch(addSquares({ [squareKey]: "wall" }));
+              return "wall";
+            } else {
+              dispatch(addSquares({ [squareKey]: "empty" }));
+              return "empty";
+            }
+          }
+        } else {
+          // copies board
+          return square;
+        }
       });
     });
-    return renderedBoard;
   };
 
-  const search = (diagonals: boolean) => {
-    const boardCopy: Array<Array<string>> = board.current.map(
-      // gets copy of board to use
-      (row: string[]) => {
-        return row.map((square: string) => {
-          return square;
-        });
-      }
-    );
+  const search = (diagonals: boolean, DFS: boolean) => {
+    let boardCopy: Array<Array<string>>;
+    if (!isFirstTime.current) {
+      boardCopy = copyBoard({ matrix: board.current, operation: "reset" });
+    } else {
+      boardCopy = copyBoard({ matrix: board.current, operation: "copy" });
+      isFirstTime.current = true;
+    }
     const visited: Set<string> = new Set();
-    const stack: string[] = [];
-    let finished: boolean = false;
-    stack.push("00");
+    const coordinates: string[] = [];
+    coordinates.push("00");
 
     let interval: any = setInterval(() => {
-      let curr: string = String(stack.pop());
+      let curr: string;
+      if (DFS) {
+        curr = String(coordinates.pop());
+      } else {
+        curr = String(coordinates.shift());
+      }
+
       while (visited.has(curr)) {
-        curr = String(stack.pop());
+        if (DFS) {
+          curr = String(coordinates.pop());
+        } else {
+          curr = String(coordinates.shift());
+        }
       }
-      if (finished || curr === undefined) {
-        // either finished or no path found
-        if (finished) dispatch(addSquares({ "99": "finish" }));
-        isRunning.current = false;
-        clearInterval(interval);
-        return;
-      }
+
       visited.add(curr);
       dispatch(addSquares({ [curr]: "active" }));
 
@@ -81,18 +119,18 @@ function App() {
 
         if (isNaN(ith) || isNaN(jth)) {
           // no path found
-          clearInterval(interval);
+          onFinish(interval, visited.size - 1, false);
           return;
         }
 
         const squareType: string = boardCopy[ith][jth];
+
         if (squareType === "wall") {
           // found a wall
-          dispatch(addSquares({ [curr]: "wall" })); // set active back to wall
+          dispatch(addSquares({ [curr]: "wall" })); // set activeSall
         } else if (squareType === "finish") {
           // finished and found path!
-          isRunning.current = false;
-          finished = true;
+          onFinish(interval, visited.size, true);
           return;
         } else {
           // found empty block or start
@@ -106,69 +144,102 @@ function App() {
                 boardCopy[i][j] !== "wall"
               ) {
                 if (!diagonals && Math.abs(i + j - (ith + jth)) === 1) {
-                  stack.push(i + "" + j);
+                  coordinates.push(i + "" + j);
                 } else if (diagonals) {
-                  stack.push(i + "" + j);
+                  coordinates.push(i + "" + j);
                 }
               }
             }
           }
         }
-        dispatch(addSquares({ [curr]: "searched" })); // turn active block back to original state
-      }, 500);
-    }, 1000);
+        dispatch(addSquares({ [curr]: "searched" })); // turn active block to searched state
+      }, 125);
+    }, 250);
   };
 
-  const handleSearchClick = (diagonals: boolean) => {
+  const onFinish = (
+    interval: NodeJS.Timeout,
+    squaresSearched: number,
+    finished: boolean
+  ) => {
+    // executes when search is finished
+    if (finished) {
+      dispatch(updateStatus("finished"));
+      dispatch(addSquares({ "99": "searched" }));
+    } else {
+      dispatch(updateStatus("hitWall"));
+    }
+    dispatch(updateSquaresSearched(squaresSearched));
+    dispatch(updateSquareClick(true));
+    clearInterval(interval);
+    isRunning.current = false;
+  };
+
+  const handleSearchClick = (diagonals: boolean, DFS: boolean) => {
+    dispatch(updateStatus("searching"));
+    dispatch(updateSquareClick(false));
     if (isRunning.current) return;
+    search(diagonals, DFS);
     isRunning.current = true;
-    search(diagonals);
-  };
-
-  const handleBoardChangeClick = (reset: boolean) => {
-    if (isRunning.current) return;
-    board.current = board.current.map((row: string[], i: number) => {
-      return row.map((individualSquare: string, j: number) => {
-        const squareKey: string = i + "" + j;
-        if (squareKey === "00") {
-          dispatch(addSquares({ [squareKey]: "start" }));
-          return "start";
-        } else if (squareKey === "99") {
-          dispatch(addSquares({ [squareKey]: "finish" }));
-          return "finish";
-        }
-        if (reset) {
-          dispatch(addSquares({ [squareKey]: "empty" }));
-          return "empty";
-        } else {
-          if (Math.random() > wallThreshold) {
-            dispatch(addSquares({ [squareKey]: "wall" }));
-            return "wall";
-          } else {
-            dispatch(addSquares({ [squareKey]: "empty" }));
-            return "empty";
-          }
-        }
-      });
-    });
   };
 
   return (
     <div className="App">
-      <div className="grid">{renderBoard()}</div>
-      <div className="buttton-container">
-        <button type="button" onClick={() => handleSearchClick(true)}>
-          Click to search (diagonals included)!
-        </button>
-        <button type="button" onClick={() => handleSearchClick(false)}>
-          Click to search (diagonals excluded)!
-        </button>
-        <button type="button" onClick={() => handleBoardChangeClick(false)}>
-          Get random board
-        </button>
-        <button type="button" onClick={() => handleBoardChangeClick(true)}>
-          Clear board
-        </button>
+      <div className="grid-and-buttons">
+        <Grid board={board} />
+        <div className="button-groups">
+          <div className="button-container">
+            <button type="button" onClick={() => handleSearchClick(true, true)}>
+              Search via DFS(diagonals included)!
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSearchClick(false, true)}
+            >
+              Search via DFS (diagonals excluded)!
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSearchClick(true, false)}
+            >
+              Search via BFS(diagonals included)!
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSearchClick(false, false)}
+            >
+              Search via BFS (diagonals excluded)!
+            </button>
+          </div>
+          <div className="button-container">
+            <button
+              type="button"
+              onClick={() => {
+                dispatch(updateStatus("idle"));
+                board.current = copyBoard({
+                  matrix: board.current,
+                  operation: "random",
+                });
+              }}
+            >
+              Get random board
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                dispatch(updateStatus("idle"));
+                board.current = copyBoard({
+                  matrix: board.current,
+                  operation: "clearboard",
+                });
+              }}
+            >
+              Clear board
+            </button>
+          </div>
+        </div>
+        <Status />
       </div>
     </div>
   );
